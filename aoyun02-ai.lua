@@ -15,7 +15,8 @@ function slashdamage(self,gong,shou)  --定义了一个函数，可以计算，一张杀在不被手
 	--以下是判断队友是否有技能鬼才鬼道极略
 	local zj = self.room:findPlayerBySkillName("guidao")
 	local sm = self.room:findPlayerBySkillName("guicai")
-	local ssm = self.room:findPlayerBySkillName("jilve")
+	--local ssm = self.room:findPlayerBySkillName("jilve")--no jilve!
+	local gj = self.room:findPlayerBySkillName("tiandu")
 	local godlikefriend = false
 	if (zj and self:isFriend(zj) and self:canRetrial(zj)) or
 	    (sm and self:isFriend(sm) and sm:getHandcardNum() >= 2) or
