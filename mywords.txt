@@ -11,3 +11,111 @@ every day and night with you
 every day every night every way 
 ¤Ä¤Ê¤¬¤ë¡¡¤«¤ó¤¸¤ç¤³¤ò¡¡¤º¤Ã¤È¤¿¤·¤«¤á¤è¤¦ 
 ¤¤¤Þ¡¢¤â¤Î¤¬¤¿¤ê¤Ïbegin  
+
+-----------
+--[[AÇø]]--
+-----------
+--[[
+	¼¼ÄÜÃû£º°²æµ
+	Ïà¹ØÎä½«£º¡îSP¡¤´óÇÇ
+	ÃèÊö£ºÃ¿µ±ÄãÊ¹ÓÃ¡¾É±¡¿¶ÔÄ¿±ê½ÇÉ«Ôì³ÉÉËº¦Ê±£¬Äã¿ÉÒÔ·ÀÖ¹´Ë´ÎÉËº¦£¬ÁîÆäÆúÖÃÒ»ÕÅÊÖÅÆ£¬È»ºóÄãÃþÒ»ÕÅÅÆ£»µ±Äã³ÉÎª¡¾É±¡¿µÄÄ¿±êÊ±£¬Äã¿ÉÒÔÆúÖÃÒ»ÕÅÊÖÅÆÊ¹Ö®ÎÞÐ§£¬È»ºó¸Ã¡¾É±¡¿µÄÊ¹ÓÃÕßÃþÒ»ÕÅÅÆ¡£
+	×´Ì¬£ºÑéÖ¤Í¨¹ý
+]]--
+LuaAnxian = sgs.CreateTriggerSkill{
+	name = "LuaAnxian",
+	frequency = sgs.Skill_NotFrequent,
+	events = {sgs.DamageCaused, sgs.TargetConfirming, sgs.SlashEffected},
+	on_trigger = function(self, event, player, data)
+		local room = player:getRoom()
+		if event == sgs.DamageCaused then
+			local damage = data:toDamage()
+			local card = damage.card
+			if card and card:isKindOf("Slash") then
+				if not damage.chain and not damage.transfer then
+					local dest = damage.to
+					if room:askForSkillInvoke(player, self:objectName(), data) then
+						if not dest:isKongcheng() then
+							room:askForDiscard(dest, self:objectName(), 1, 1)
+						else
+							player:drawCards(1)
+						end
+						return true
+					end
+				end
+			end
+		elseif event == sgs.TargetConfirming then
+			local use = data:toCardUse()
+			local card = use.card
+			if card and card:isKindOf("Slash") then
+				if room:askForCard(player, ".", "@anxian-discard", sgs.QVariant(), sgs.CardDiscarded) then
+					player:addMark("anxian")
+                    use.from:drawCards(1)
+				end
+			end
+		elseif event == sgs.SlashEffected then
+			if player:getMark("anxian") > 0 then
+				local count = player:getMark("anxian") - 1
+                player:setMark("anxian", count)
+                return true
+            end
+			return false
+		end
+	end
+}
+--[[
+	¼¼ÄÜÃû£º°²Ðô
+	Ïà¹ØÎä½«£º¶þ½«³ÉÃû¡¤²½Á·Ê¦
+	ÃèÊö£º³öÅÆ½×¶Î£¬Äã¿ÉÒÔÑ¡ÔñÁ½ÃûÊÖÅÆÊý²»ÏàµÈµÄÆäËû½ÇÉ«£¬ÁîÆäÖÐÊÖÅÆÉÙµÄ½ÇÉ«»ñµÃÊÖÅÆ¶àµÄ½ÇÉ«µÄÒ»ÕÅÊÖÅÆ²¢Õ¹Ê¾Ö®£¬Èô´ËÅÆ²»ÎªºÚÌÒ£¬ÄãÃþÒ»ÕÅÅÆ¡£Ã¿½×¶ÎÏÞÒ»´Î¡£
+	×´Ì¬£ºÑéÖ¤Í¨¹ý
+]]--
+AnxuCard = sgs.CreateSkillCard{
+	name = "AnxuCard",
+	target_fixed = false, 
+	will_throw = true, 
+	filter = function(self, targets, to_select) 
+		if to_select == sgs.Self then
+			return false
+		elseif #targets == 0 then
+			return true
+		elseif #targets == 1 then
+			local first = targets[1]
+			return to_select:getHandcardNum() ~= first:getHandcardNum()
+		end
+		return false
+	end,
+	feasible = function(self, targets)
+		return #targets == 2
+	end,
+	on_use = function(self, room, source, targets)
+		local playerA = targets[1]
+		local playerB = targets[2]
+		local from
+		local to
+		if playerA:getHandcardNum() > playerB:getHandcardNum() then
+			from = playerB
+			to = playerA
+		else
+			from = playerA
+			to = playerB
+		end
+		local id = room:askForCardChosen(from, to, "h", self:objectName())
+		local card = sgs.Sanguosha:getCard(id)
+		room:obtainCard(from, card)
+		room:showCard(from, id)
+		if card:getSuit() ~= sgs.Card_Spade then
+			source:drawCards(1)
+		end
+	end
+}
+LuaAnxu = sgs.CreateViewAsSkill{
+	name = "LuaAnxu",
+	n = 0,
+	view_as = function(self, cards)
+		local card = AnxuCard:clone()
+		card:setSkillName(self:objectName())
+		return card
+	end, 
+	enabled_at_play = function(self, player)
+		return not player:hasUsed("#AnxuCard")
+	end, 
+}
